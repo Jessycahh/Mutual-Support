@@ -27,6 +27,7 @@
 (define-constant ERR-YIELD-RATE-TOO-HIGH (err u109))
 (define-constant ERR-INVALID-PARAMETER (err u110))
 (define-constant ERR-DESCRIPTION-TOO-SHORT (err u111))
+(define-constant ERR-INVALID-RECIPIENT (err u112))
 
 ;; DATA STORAGE STRUCTURES
 
@@ -98,6 +99,14 @@
 ;; Helper function to validate string length
 (define-read-only (get-string-length (input-string (string-utf8 256)))
   (len input-string)
+)
+
+;; Helper function to validate recipient address
+(define-read-only (is-valid-recipient (recipient principal))
+  (and 
+    (not (is-eq recipient (as-contract tx-sender)))  ;; Not the contract itself
+    (not (is-eq recipient 'SP000000000000000000002Q6VF78))  ;; Not burn address
+  )
 )
 
 ;; Calculate pending rewards for a member
@@ -370,6 +379,9 @@
   (begin
     ;; Verify admin access
     (asserts! (is-eq tx-sender contract-admin) ERR-UNAUTHORIZED-ACCESS)
+    
+    ;; Validate recipient address
+    (asserts! (is-valid-recipient recipient) ERR-INVALID-RECIPIENT)
     
     ;; Validate amount
     (asserts! (<= amount (var-get total-pool-balance)) ERR-INSUFFICIENT-BALANCE)
